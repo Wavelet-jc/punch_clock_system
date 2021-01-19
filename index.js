@@ -4,15 +4,17 @@
 
 'use strict';	// Whole-script strict mode applied.
 
-const http = require('http');   // NOTE: import default module
-const fs = require('fs');       // NOTE: import default module
-const querystring = require('querystring'); // NOTE: import default module
+const http = require('http');               // a high-performing foundation for an HTTP stack 
+const fs = require('fs');                   // fs模块提供对文件系统的访问
+const querystring = require('querystring'); // The querystring module provides utilities for parsing and formatting URL query strings. 
+const moment = require('moment');
 
 //
 // Step 1: Open login page to get cookie 'ASP.NET_SessionId' and hidden input '_ASPNetRecycleSession'.
 //
 var _ASPNET_SessionId;
 var _ASPNetRecycleSession;
+var Arr = [];
 
 function openLoginPage() {
 
@@ -315,6 +317,20 @@ function parseKQ(html) {
             'g');   // NOTE: 'g' is important
         let m = rex.exec(html);
         if (m) {
+            let checkDatetime = moment(m[4], 'MM/DD/YYYY H:mm:ss');                         // 打卡时间
+            let dateArr = checkDatetime.toArray();
+
+            let thisDate = `${dateArr[0]}-${dateArr[1] + 1}-${dateArr[2]}`;
+            let thisTime = `${dateArr[3]}:${dateArr[4]}:${dateArr[5]}`;
+            let person = `${m[1]} ${m[2]} ${m[3]}`;
+            
+            if(!Arr[person]){
+                Arr[person] = [];
+            }
+            if(!Arr[person][thisDate])
+                Arr[person][thisDate] = [];
+            Arr[person][thisDate].push(thisTime);
+
             console.log(`${m[1]} ${m[2]} ${m[3]} ${m[4]}`);
             html = html.substr(rex.lastIndex);
         } else {
@@ -324,13 +340,61 @@ function parseKQ(html) {
     return {curPage: curPage, numPages: numPages};
 }
 
+function report(Arr) {
+    const ARRIVETIME = "08:50:00";
+    const LEAVETIME = "16:50:00";
+
+    for (let personnel in Arr) {
+        
+        let val = Arr[personnel];
+        console.log(personnel);
+        console.log('\t日期 \t\t| 进入时间 \t| 离开时间 \t| 状态');
+        console.log('\t-----------------------------------------------------------------');
+        for (let date in val) {
+            let punchTimeArr = Array.from(val[date]);
+            
+            let todayArriveDateTime = moment(`${date} ${ARRIVETIME}`, "YYYY-MM--DD HH:mm:ss");
+            let todayLeaveDateTime = moment(`${date} ${LEAVETIME}`, "YYYY-MM--DD HH:mm:ss");
+            let exceptionStr = '';
+            let checkInStr = null;
+            let checkOutStr = null;
+
+            if (punchTimeArr.length == 1) {                         // 当日只有一次刷卡记录
+                exceptionStr += " 只刷一次";
+                checkInStr = punchTimeArr[0];
+            } else {
+                let checkIn = null;
+                let checkOut = null;
+                checkOutStr = punchTimeArr[0];
+                checkInStr = punchTimeArr.pop();
+                checkOut = moment(date + ' ' + checkOutStr, "YYYY-MM-DD HH:mm:ss");
+                checkIn = moment(date + ' ' + checkInStr, "YYYY-MM-DD HH:mm:ss");
+
+                if (checkIn.isAfter(todayArriveDateTime))           // 当日第一次刷卡晚于8:50
+                    exceptionStr += " 迟到";
+                if (checkOut.isBefore(todayLeaveDateTime))          // 当日最后一次刷卡早于16:50
+                    exceptionStr += " 早退";
+                if (checkOut.diff(checkIn, 'hours', true) < 9)      // 当日工作时间小于9小时
+                    exceptionStr += " 工时不足";
+            }
+
+            console.log(`\t${date} \t| ${checkInStr} \t| ${checkOutStr} \t| ${exceptionStr}`);
+        }
+        console.log('\n');
+    }
+}
+
 function askAll() {
-    inquire('2020-12-24', '2021-1-11', 'john', false,
-    ()=> inquire('2020-12-28', '2021-1-11', 'S2008001', false,
-    ()=> inquire('2020-12-24', '2021-1-6', 'ANNE', false,
-    ()=> inquire('2020-12-25', '2021-1-08', 'LEO MY CHEN', false,
-    ()=> inquire('2021-01-7', '2021-1-11', 'S0203002', false,
-    function() { console.log("All done.") } )))));
+    let startDate = '2021-01-01';
+    let curDate = new Date('YYYY-MM-DD');
+    inquire(startDate, curDate, 'Ce Xian', false,
+    ()=> inquire(startDate, curDate, 'Jack QP Zhang', false,
+    ()=> inquire(startDate, curDate, 'Lance Li', false,
+    ()=> inquire(startDate, curDate, 'Anne SQ Liu', false,
+    ()=> inquire(startDate, curDate, 'Carlos Jiang', false,
+    ()=> inquire(startDate, curDate, 'Xu Qian', false,
+    ()=> inquire(startDate, curDate, 'Joy Yang', false,
+    function() { console.log("All done."); report(Arr);} )))))));
 }
 
 openLoginPage();    // Where it all begins.
