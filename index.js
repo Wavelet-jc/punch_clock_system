@@ -340,35 +340,45 @@ function parseKQ(html) {
     return {curPage: curPage, numPages: numPages};
 }
 
-function report(Arr) {
+function report(Arr, startDate, endDate) {
     const ARRIVETIME = "08:50:00";
     const LEAVETIME = "16:50:00";
-
+    let dateArr = getdiffdate(startDate,endDate);
     for (let personnel in Arr) {
         
         let val = Arr[personnel];
         console.log(personnel);
         console.log('\t日期 \t\t| 进入时间 \t| 离开时间 \t| 状态');
         console.log('\t-----------------------------------------------------------------');
-        for (let date in val) {
-            let punchTimeArr = Array.from(val[date]);
-            
-            let todayArriveDateTime = moment(`${date} ${ARRIVETIME}`, "YYYY-MM--DD HH:mm:ss");
-            let todayLeaveDateTime = moment(`${date} ${LEAVETIME}`, "YYYY-MM--DD HH:mm:ss");
+        dateArr.forEach(date => {
+
+            let punchTimeArr;
             let exceptionStr = '';
             let checkInStr = null;
             let checkOutStr = null;
+            if(val[date] != undefined)
+                punchTimeArr = Array.from(val[date]);
+            else{
+                punchTimeArr =[];
+            }
+            let todayArriveDateTime = moment(`${date} ${ARRIVETIME}`, "YYYY-MM--DD HH:mm:ss");
+            let todayLeaveDateTime = moment(`${date} ${LEAVETIME}`, "YYYY-MM--DD HH:mm:ss");
 
-            if (punchTimeArr.length == 1) {                         // 当日只有一次刷卡记录
+            if(punchTimeArr.length == 0 ){
+                if(moment(todayArriveDateTime).weekday() <= 5 && moment(todayArriveDateTime).weekday() >= 1)
+                    exceptionStr += " 请假";
+                else{
+                    exceptionStr += " 周末";
+                }
+            } else if (punchTimeArr.length == 1) {                  // 当日只有一次刷卡记录
                 exceptionStr += " 只刷一次";
                 checkInStr = punchTimeArr[0];
-            } else {
-                let checkIn = null;
-                let checkOut = null;
+
+            } else if(punchTimeArr.length == 2){
                 checkOutStr = punchTimeArr[0];
                 checkInStr = punchTimeArr.pop();
-                checkOut = moment(date + ' ' + checkOutStr, "YYYY-MM-DD HH:mm:ss");
-                checkIn = moment(date + ' ' + checkInStr, "YYYY-MM-DD HH:mm:ss");
+                let checkOut = moment(date + ' ' + checkOutStr, "YYYY-MM-DD HH:mm:ss");
+                let checkIn = moment(date + ' ' + checkInStr, "YYYY-MM-DD HH:mm:ss");
 
                 if (checkIn.isAfter(todayArriveDateTime))           // 当日第一次刷卡晚于8:50
                     exceptionStr += " 迟到";
@@ -377,24 +387,41 @@ function report(Arr) {
                 if (checkOut.diff(checkIn, 'hours', true) < 9)      // 当日工作时间小于9小时
                     exceptionStr += " 工时不足";
             }
-
-            console.log(`\t${date} \t| ${checkInStr} \t| ${checkOutStr} \t| ${exceptionStr}`);
-        }
+                exceptionStr = (exceptionStr == '')?'正常':exceptionStr;
+            console.log(`\t${date} \t| ${checkInStr} | ${checkOutStr} | ${exceptionStr}`);
+        });
         console.log('\n');
     }
 }
 
+//获取两日期之间日期列表函数
+function getdiffdate(startDate,endDate){
+    //初始化日期列表，数组
+    var diffdate = new Array();
+    var i=0;
+    let m_startDate = moment(startDate,'YYYY-MM-DD');
+    let m_endDate = moment(endDate,'YYYY-MM-DD');
+
+    while(m_startDate.isBefore(m_endDate)){
+        diffdate[i] = moment(m_startDate).format('YYYY-M-D');
+        m_startDate = moment(m_startDate).add(1, 'days');
+        i++;
+    }
+    diffdate[i] = moment(m_endDate).format('YYYY-M-D');
+    return diffdate;
+}
+
 function askAll() {
     let startDate = '2021-01-01';
-    let curDate = new Date('YYYY-MM-DD');
-    inquire(startDate, curDate, 'Ce Xian', false,
-    ()=> inquire(startDate, curDate, 'Jack QP Zhang', false,
-    ()=> inquire(startDate, curDate, 'Lance Li', false,
-    ()=> inquire(startDate, curDate, 'Anne SQ Liu', false,
-    ()=> inquire(startDate, curDate, 'Carlos Jiang', false,
-    ()=> inquire(startDate, curDate, 'Xu Qian', false,
-    ()=> inquire(startDate, curDate, 'Joy Yang', false,
-    function() { console.log("All done."); report(Arr);} )))))));
+    let endDate = moment().format('YYYY-MM-DD');
+    inquire(startDate, endDate, 'Ce Xian', false,
+    ()=> inquire(startDate, endDate, 'Jack QP Zhang', false,
+    ()=> inquire(startDate, endDate, 'Lance Li', false,
+    ()=> inquire(startDate, endDate, 'Anne SQ Liu', false,
+    ()=> inquire(startDate, endDate, 'Carlos Jiang', false,
+    ()=> inquire(startDate, endDate, 'Xu Qian', false,
+    ()=> inquire(startDate, endDate, 'Joy Yang', false,
+    function() { console.log("All done."); report(Arr,startDate,endDate);} )))))));
 }
 
 openLoginPage();    // Where it all begins.
