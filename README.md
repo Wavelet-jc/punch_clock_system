@@ -11,7 +11,7 @@
 
 
 # How to use
-git clone https://github.com/alex632/kq.git
+git clone https://github.com/Wavelet-jc/punch_clock_system.git
 > node index.js
 
 # Insights
