@@ -341,15 +341,14 @@ function parseKQ(html) {
 }
 
 function report(Arr, startDate, endDate) {
-    const ARRIVETIME = "08:50:00";
+    const ARRIVETIME = "08:50:59";
     const LEAVETIME = "16:50:00";
     let dateArr = getdiffdate(startDate,endDate);
     for (let personnel in Arr) {
         
         let val = Arr[personnel];
         console.log(personnel);
-        console.log('\t日期 \t\t| 进入时间 \t| 离开时间 \t| 状态');
-        console.log('\t-----------------------------------------------------------------');
+        let table = [];
         dateArr.forEach(date => {
 
             let punchTimeArr;
@@ -361,35 +360,36 @@ function report(Arr, startDate, endDate) {
             else{
                 punchTimeArr =[];
             }
-            let todayArriveDateTime = moment(`${date} ${ARRIVETIME}`, "YYYY-MM--DD HH:mm:ss");
-            let todayLeaveDateTime = moment(`${date} ${LEAVETIME}`, "YYYY-MM--DD HH:mm:ss");
+            let todayArriveDateTime = moment(`${date} ${ARRIVETIME}`, "YYYY-MM-DD HH:mm:ss");
+            let todayLeaveDateTime = moment(`${date} ${LEAVETIME}`, "YYYY-MM-DD HH:mm:ss");
 
             if(punchTimeArr.length == 0 ){
                 if(moment(todayArriveDateTime).weekday() <= 5 && moment(todayArriveDateTime).weekday() >= 1)
-                    exceptionStr += " 请假";
+                    exceptionStr += "请假";
                 else{
-                    exceptionStr += " 周末";
+                    exceptionStr += "周末";
                 }
             } else if (punchTimeArr.length == 1) {                  // 当日只有一次刷卡记录
-                exceptionStr += " 只刷一次";
+                exceptionStr += "只刷一次 ";
                 checkInStr = punchTimeArr[0];
 
-            } else if(punchTimeArr.length == 2){
+            } else if(punchTimeArr.length >= 2){
                 checkOutStr = punchTimeArr[0];
                 checkInStr = punchTimeArr.pop();
                 let checkOut = moment(date + ' ' + checkOutStr, "YYYY-MM-DD HH:mm:ss");
                 let checkIn = moment(date + ' ' + checkInStr, "YYYY-MM-DD HH:mm:ss");
 
                 if (checkIn.isAfter(todayArriveDateTime))           // 当日第一次刷卡晚于8:50
-                    exceptionStr += " 迟到";
+                    exceptionStr += "迟到 ";
                 if (checkOut.isBefore(todayLeaveDateTime))          // 当日最后一次刷卡早于16:50
-                    exceptionStr += " 早退";
+                    exceptionStr += "早退 ";
                 if (checkOut.diff(checkIn, 'hours', true) < 9)      // 当日工作时间小于9小时
-                    exceptionStr += " 工时不足";
+                    exceptionStr += "工时不足 ";
             }
-                exceptionStr = (exceptionStr == '')?'正常':exceptionStr;
-            console.log(`\t${date} \t| ${checkInStr} | ${checkOutStr} | ${exceptionStr}`);
+            exceptionStr = (exceptionStr == '')?'正常':exceptionStr;
+            table.push({ '日期' : date, '进入时间' : checkInStr, '离开时间': checkOutStr, '状态': exceptionStr });
         });
+        console.table(table);
         console.log('\n');
     }
 }
@@ -421,7 +421,7 @@ function askAll() {
     ()=> inquire(startDate, endDate, 'Carlos Jiang', false,
     ()=> inquire(startDate, endDate, 'Xu Qian', false,
     ()=> inquire(startDate, endDate, 'Joy Yang', false,
-    function() { console.log("All done."); report(Arr,startDate,endDate);} )))))));
+    function() { console.log("All done."); report(Arr,startDate,endDate); } )))))));
 }
 
 openLoginPage();    // Where it all begins.
