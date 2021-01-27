@@ -17,3 +17,7 @@ git clone https://github.com/Wavelet-jc/punch_clock_system.git
 # Insights
     Event driven & asynchronism are good. However they are somewhat not easy to comprehend.
     Customized Web Crawler.
+
+# Modules
+Moment.js 2.24.0
+JavaScript 日期处理类库
